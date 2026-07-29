@@ -14,7 +14,7 @@ async function getDb() {
     await cachedClient.connect();
   }
 
-  cachedDb = cachedClient.db(process.env.MONGODB_DB || 'color_hunt');
+  cachedDb = cachedClient.db(process.env.MONGODB_DB || 'supersnap');
   return cachedDb;
 }
 
