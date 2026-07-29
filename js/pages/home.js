@@ -1,17 +1,36 @@
 import { api } from '../api.js';
 import { initNav, getCurrentUser } from '../nav.js';
 import { uploadPhoto } from '../photo.js';
-import { buildCollage, downloadCanvas } from '../collage.js';
 import { difficultyBadge, formatDate } from '../labels.js';
 
 const content = document.getElementById('content');
+const TOAST_DISMISSED_KEY = 'supersnap_intro_dismissed';
 
-function renderLoggedOut() {
-  content.innerHTML = `
-    <div class="card">
-      <h1>Bienvenue sur SuperSnap</h1>
-      <p>Chaque semaine ou chaque mois, un thème ou une couleur est tiré au sort. Photographiez tout ce qui correspond, montez votre collage, et votez pour vos participations préférées !</p>
-      <a class="btn" href="compte.html">Se connecter / Créer un compte</a>
+function renderIntroToast() {
+  const mount = document.getElementById('intro-toast');
+  if (!mount || localStorage.getItem(TOAST_DISMISSED_KEY)) return;
+
+  mount.innerHTML = `
+    <div class="card intro-toast">
+      <button id="intro-toast-close" class="link-btn intro-toast-close" aria-label="Fermer">×</button>
+      <p><strong>C'est quoi, SuperSnap ?</strong> Chaque semaine ou chaque mois, on tire un thème ou une couleur au sort — plus c'est difficile, moins il faut de photos. Photographiez tout ce qui correspond, vos photos rejoignent la collection commune en direct, puis tout le monde vote pour ses favorites pour gagner des points.</p>
+    </div>
+  `;
+  document.getElementById('intro-toast-close').addEventListener('click', () => {
+    localStorage.setItem(TOAST_DISMISSED_KEY, '1');
+    mount.innerHTML = '';
+  });
+}
+
+function photoGalleryHtml(photos) {
+  if (!photos.length) {
+    return '<p class="muted">Aucune photo pour l\'instant — soyez le premier ou la première !</p>';
+  }
+  return `
+    <div class="photo-grid">
+      ${photos
+        .map((p) => `<figure><img src="${p.url}" loading="lazy" /><figcaption>${p.username}</figcaption></figure>`)
+        .join('')}
     </div>
   `;
 }
@@ -25,91 +44,91 @@ function renderNoCycle(upcoming) {
   `;
 }
 
-function renderVotingOpen(cycle) {
+function renderVotingOpen(cycle, photos) {
+  const loggedIn = !!getCurrentUser();
   content.innerHTML = `
     <div class="card">
       <h1>${cycle.promptText} ${difficultyBadge(cycle.difficulty)}</h1>
       <p>Les soumissions sont closes, place au vote !</p>
-      <a class="btn" href="vote.html">Aller voter</a>
+      ${loggedIn ? '<a class="btn" href="vote.html">Aller voter</a>' : '<a class="btn" href="compte.html">Se connecter pour voter</a>'}
+    </div>
+    <div class="card">
+      <h2>La collection</h2>
+      ${photoGalleryHtml(photos)}
     </div>
   `;
 }
 
-async function renderSubmissionOpen(cycle) {
-  const { submission } = await api.get('/api/submissions/mine');
-  const photoUrls = submission?.photoUrls || [];
-  const complete = photoUrls.length >= cycle.minPhotos;
-  const pct = Math.min(100, Math.round((photoUrls.length / cycle.minPhotos) * 100));
+async function renderSubmissionOpen(cycle, photos) {
+  const user = getCurrentUser();
+  let myCount = 0;
+  if (user) {
+    const { submission } = await api.get('/api/submissions/mine');
+    myCount = submission?.photoUrls?.length || 0;
+  }
+  const complete = myCount >= cycle.minPhotos;
+  const pct = Math.min(100, Math.round((myCount / cycle.minPhotos) * 100));
 
   content.innerHTML = `
     <div class="card">
       <h1>${cycle.promptText} ${difficultyBadge(cycle.difficulty)}</h1>
       <p class="muted">Soumissions ouvertes jusqu'au ${formatDate(cycle.submissionEnd)}</p>
-      <p><span class="counter">${photoUrls.length} / ${cycle.minPhotos}</span> ${complete ? ' — pellicule complète !' : ''}</p>
-      <div class="progress-bar"><div style="width:${pct}%"></div></div>
-
-      <div class="file-picker">
-        <label for="photo-input" class="btn file-picker-label">Choisir des photos</label>
-        <input id="photo-input" type="file" accept="image/*" multiple class="file-input-hidden" />
-        <span class="muted" id="file-count"></span>
-      </div>
-      <p class="error" id="upload-error"></p>
-      <button id="upload-btn">Envoyer</button>
-
-      <div class="photo-grid" id="photo-grid">
-        ${photoUrls.map((u) => `<figure><img src="${u}" loading="lazy" /></figure>`).join('')}
-      </div>
-
-      <button id="collage-btn" class="secondary" ${photoUrls.length ? '' : 'disabled'}>Générer mon montage</button>
-      <p class="muted" id="collage-status"></p>
+      ${
+        user
+          ? `
+        <p><span class="counter">${myCount} / ${cycle.minPhotos}</span> ${complete ? ' — pellicule complète !' : ''}</p>
+        <div class="progress-bar"><div style="width:${pct}%"></div></div>
+        <div class="file-picker">
+          <label for="photo-input" class="btn file-picker-label">Choisir des photos</label>
+          <input id="photo-input" type="file" accept="image/*" multiple class="file-input-hidden" />
+          <span class="muted" id="upload-status"></span>
+        </div>
+        <p class="error" id="upload-error"></p>
+      `
+          : `
+        <p class="muted">Connectez-vous pour participer à ce défi.</p>
+        <a class="btn" href="compte.html">Se connecter / Créer un compte</a>
+      `
+      }
+    </div>
+    <div class="card">
+      <h2>La collection</h2>
+      ${photoGalleryHtml(photos)}
     </div>
   `;
 
-  document.getElementById('photo-input').addEventListener('change', (e) => {
-    const count = e.target.files?.length || 0;
-    document.getElementById('file-count').textContent = count
-      ? `${count} photo${count > 1 ? 's' : ''} sélectionnée${count > 1 ? 's' : ''}`
-      : '';
-  });
+  if (!user) return;
 
-  document.getElementById('upload-btn').addEventListener('click', async () => {
-    const input = document.getElementById('photo-input');
+  document.getElementById('photo-input').addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const input = e.target;
+    const label = document.querySelector('.file-picker-label');
+    const statusEl = document.getElementById('upload-status');
     const errorEl = document.getElementById('upload-error');
     errorEl.textContent = '';
-    const files = Array.from(input.files || []);
-    if (!files.length) {
-      errorEl.textContent = 'Choisissez au moins une photo';
-      return;
-    }
-    const btn = document.getElementById('upload-btn');
-    btn.disabled = true;
-    btn.textContent = 'Envoi en cours…';
+    input.disabled = true;
+    label.style.opacity = '0.6';
+    label.style.pointerEvents = 'none';
     uploading = true;
+
     try {
       const urls = [];
-      for (const file of files) {
-        urls.push(await uploadPhoto(file));
+      for (let i = 0; i < files.length; i++) {
+        statusEl.textContent = `Envoi ${i + 1}/${files.length}…`;
+        urls.push(await uploadPhoto(files[i]));
       }
       await api.post('/api/submissions', { photoUrls: urls });
-      await renderSubmissionOpen(cycle);
+      statusEl.textContent = 'Envoyé !';
+      await checkCycle({ force: true });
     } catch (err) {
       errorEl.textContent = err.message;
-      btn.disabled = false;
-      btn.textContent = 'Envoyer';
+      input.disabled = false;
+      label.style.opacity = '';
+      label.style.pointerEvents = '';
     } finally {
       uploading = false;
-    }
-  });
-
-  document.getElementById('collage-btn').addEventListener('click', async () => {
-    const status = document.getElementById('collage-status');
-    status.textContent = 'Génération du montage…';
-    try {
-      const canvas = await buildCollage(photoUrls);
-      downloadCanvas(canvas, `supersnap-${cycle.promptText}.png`);
-      status.textContent = 'Montage téléchargé !';
-    } catch (err) {
-      status.textContent = err.message;
     }
   });
 }
@@ -118,8 +137,8 @@ const POLL_INTERVAL_MS = 5000;
 let lastSignature = null;
 let uploading = false;
 
-function signatureFor(cycle, upcoming) {
-  if (cycle) return `${cycle._id}:${cycle.status}`;
+function signatureFor(cycle, upcoming, photos) {
+  if (cycle) return `${cycle._id}:${cycle.status}:${(photos || []).length}`;
   return upcoming ? `upcoming:${upcoming._id}` : 'none';
 }
 
@@ -127,17 +146,17 @@ async function checkCycle({ force = false } = {}) {
   if (uploading) return; // don't yank the form out from under an in-flight upload
 
   try {
-    const { cycle, upcoming } = await api.get('/api/cycles/current');
-    const signature = signatureFor(cycle, upcoming);
+    const { cycle, upcoming, photos } = await api.get('/api/cycles/current');
+    const signature = signatureFor(cycle, upcoming, photos);
     if (!force && signature === lastSignature) return; // nothing changed, leave the view alone
     lastSignature = signature;
 
     if (!cycle) {
       renderNoCycle(upcoming);
     } else if (cycle.status === 'voting_open') {
-      renderVotingOpen(cycle);
+      renderVotingOpen(cycle, photos || []);
     } else {
-      await renderSubmissionOpen(cycle);
+      await renderSubmissionOpen(cycle, photos || []);
     }
   } catch (err) {
     content.innerHTML = `<p class="error">${err.message}</p>`;
@@ -146,11 +165,7 @@ async function checkCycle({ force = false } = {}) {
 
 async function init() {
   await initNav('defi');
-  if (!getCurrentUser()) {
-    renderLoggedOut();
-    return;
-  }
-
+  renderIntroToast();
   await checkCycle({ force: true });
   setInterval(checkCycle, POLL_INTERVAL_MS);
 }

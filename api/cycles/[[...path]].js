@@ -22,7 +22,11 @@ async function current(req, res, db) {
     { sort: { submissionStart: -1 } }
   );
   if (active) {
-    res.status(200).json({ cycle: active });
+    // Public collection: everyone (logged in or not) sees every photo
+    // submitted so far for the live cycle, no gating.
+    const submissions = await db.collection('submissions').find({ cycleId: active._id }).toArray();
+    const photos = submissions.flatMap((s) => s.photoUrls.map((url) => ({ url, username: s.username })));
+    res.status(200).json({ cycle: active, photos });
     return;
   }
 

@@ -176,6 +176,37 @@ main {
 .photo-grid figure:nth-child(3n) { --tilt: -0.5deg; }
 .photo-grid figure:hover { transform: rotate(0deg) scale(1.03); }
 .photo-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+.photo-grid figcaption {
+  font-family: 'VT323', 'Courier New', monospace;
+  font-size: 1rem;
+  color: var(--purple-deep);
+  text-align: center;
+  margin-top: 0.15rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- intro toast ---------- */
+
+.intro-toast {
+  position: relative;
+  background: var(--purple-deep);
+  border: none;
+  padding-right: 2.6rem;
+}
+.intro-toast p { margin: 0; color: var(--white); }
+.intro-toast strong { color: var(--yellow); }
+.intro-toast-close {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.9rem;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--white);
+  padding: 0.2rem 0.4rem;
+}
+.intro-toast-close:hover { color: var(--yellow); }
 
 button, .btn {
   display: inline-block;
