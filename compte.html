@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Compte — Color Hunt</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="nav"></div>
+  <main>
+    <div class="card">
+      <div id="already-logged" style="display:none">
+        <p>Vous êtes déjà connecté(e). <a href="index.html">Retour au défi</a></p>
+      </div>
+
+      <div id="forms">
+        <div class="tabs" style="display:flex; gap:1rem; margin-bottom:1.2rem;">
+          <button id="tab-login" class="ghost">Se connecter</button>
+          <button id="tab-signup" class="ghost">Créer un compte</button>
+        </div>
+
+        <form id="login-form">
+          <h2>Se connecter</h2>
+          <label for="login-email">Email</label>
+          <input id="login-email" type="email" required />
+          <label for="login-password">Mot de passe</label>
+          <input id="login-password" type="password" required />
+          <p class="error" id="login-error"></p>
+          <button type="submit">Se connecter</button>
+        </form>
+
+        <form id="signup-form" style="display:none">
+          <h2>Créer un compte</h2>
+          <label for="signup-username">Pseudo</label>
+          <input id="signup-username" required />
+          <label for="signup-email">Email</label>
+          <input id="signup-email" type="email" required />
+          <label for="signup-password">Mot de passe (8 caractères min.)</label>
+          <input id="signup-password" type="password" minlength="8" required />
+          <p class="error" id="signup-error"></p>
+          <button type="submit">Créer mon compte</button>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="js/pages/compte.js"></script>
+</body>
+</html>
