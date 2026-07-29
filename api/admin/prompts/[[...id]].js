@@ -4,22 +4,6 @@ const { requireAdmin } = require('../../_lib/auth');
 const { MIN_PHOTOS_BY_DIFFICULTY } = require('../../_lib/difficulty');
 const { pathSegments } = require('../../_lib/path');
 
-async function list(req, res, db) {
-  const prompts = await db.collection('promptPool').find({}).sort({ lastUsedAt: 1 }).toArray();
-  res.status(200).json({ prompts });
-}
-
-async function create(req, res, db) {
-  const { text, difficulty } = req.body || {};
-  if (!text || !MIN_PHOTOS_BY_DIFFICULTY[difficulty]) {
-    res.status(400).json({ error: 'text et difficulty (easy|medium|hard) requis' });
-    return;
-  }
-  const prompt = { text: String(text).trim(), difficulty, lastUsedAt: null, createdAt: new Date() };
-  const result = await db.collection('promptPool').insertOne(prompt);
-  res.status(201).json({ prompt: { ...prompt, _id: result.insertedId } });
-}
-
 async function update(req, res, db, id) {
   if (!ObjectId.isValid(id)) {
     res.status(400).json({ error: 'Identifiant invalide' });
@@ -54,11 +38,13 @@ module.exports = async (req, res) => {
   if (!admin) return;
 
   const [id] = pathSegments(req, '/api/admin/prompts');
+  if (!id) {
+    res.status(404).json({ error: 'Route inconnue' });
+    return;
+  }
 
-  if (!id && req.method === 'GET') return list(req, res, db);
-  if (!id && req.method === 'POST') return create(req, res, db);
-  if (id && req.method === 'PATCH') return update(req, res, db, id);
-  if (id && req.method === 'DELETE') return remove(req, res, db, id);
+  if (req.method === 'PATCH') return update(req, res, db, id);
+  if (req.method === 'DELETE') return remove(req, res, db, id);
 
   res.status(404).json({ error: 'Route inconnue' });
 };
