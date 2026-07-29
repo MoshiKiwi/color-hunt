@@ -2,6 +2,7 @@ const { ObjectId } = require('mongodb');
 const { getDb } = require('../../_lib/db');
 const { requireAdmin } = require('../../_lib/auth');
 const { MIN_PHOTOS_BY_DIFFICULTY, CYCLE_DURATION_DAYS, VOTING_WINDOW_DAYS } = require('../../_lib/difficulty');
+const { pathSegments } = require('../../_lib/path');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -148,7 +149,7 @@ module.exports = async (req, res) => {
   const admin = await requireAdmin(req, res, db);
   if (!admin) return;
 
-  const path = req.query.path || [];
+  const path = pathSegments(req, '/api/admin/schedule');
 
   if (path.length === 1 && path[0] === 'generate' && req.method === 'POST') return generate(req, res, db);
   if (path.length === 1 && path[0] === 'pending' && req.method === 'GET') return pending(req, res, db);

@@ -1,6 +1,7 @@
 const { ObjectId } = require('mongodb');
 const { getDb } = require('../_lib/db');
 const { requireAuth } = require('../_lib/auth');
+const { pathSegments } = require('../_lib/path');
 
 function shuffle(array) {
   const copy = [...array];
@@ -86,7 +87,7 @@ module.exports = async (req, res) => {
   }
 
   const db = await getDb();
-  const path = req.query.path || [];
+  const path = pathSegments(req, '/api/cycles');
 
   if (path.length === 0 || path[0] === 'current') return current(req, res, db);
   if (path[0] === 'archive') return archive(req, res, db);

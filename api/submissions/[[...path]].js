@@ -1,6 +1,7 @@
 const { ObjectId } = require('mongodb');
 const { getDb } = require('../_lib/db');
 const { requireAuth } = require('../_lib/auth');
+const { pathSegments } = require('../_lib/path');
 
 async function create(req, res, db, session) {
   const { photoUrls } = req.body || {};
@@ -56,7 +57,7 @@ module.exports = async (req, res) => {
   if (!session) return;
 
   const db = await getDb();
-  const path = req.query.path || [];
+  const path = pathSegments(req, '/api/submissions');
 
   if (req.method === 'POST' && path.length === 0) return create(req, res, db, session);
   if (req.method === 'GET' && path[0] === 'mine') return mine(req, res, db, session);

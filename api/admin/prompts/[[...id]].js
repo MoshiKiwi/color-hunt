@@ -2,6 +2,7 @@ const { ObjectId } = require('mongodb');
 const { getDb } = require('../../_lib/db');
 const { requireAdmin } = require('../../_lib/auth');
 const { MIN_PHOTOS_BY_DIFFICULTY } = require('../../_lib/difficulty');
+const { pathSegments } = require('../../_lib/path');
 
 async function list(req, res, db) {
   const prompts = await db.collection('promptPool').find({}).sort({ lastUsedAt: 1 }).toArray();
@@ -52,7 +53,7 @@ module.exports = async (req, res) => {
   const admin = await requireAdmin(req, res, db);
   if (!admin) return;
 
-  const [id] = req.query.id || [];
+  const [id] = pathSegments(req, '/api/admin/prompts');
 
   if (!id && req.method === 'GET') return list(req, res, db);
   if (!id && req.method === 'POST') return create(req, res, db);
