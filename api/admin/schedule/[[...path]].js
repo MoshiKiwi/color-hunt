@@ -151,11 +151,19 @@ module.exports = async (req, res) => {
 
   const path = pathSegments(req, '/api/admin/schedule');
 
-  if (path.length === 1 && path[0] === 'generate' && req.method === 'POST') return generate(req, res, db);
-  if (path.length === 1 && path[0] === 'pending' && req.method === 'GET') return pending(req, res, db);
-  if (path.length === 1 && req.method === 'PATCH') return update(req, res, db, path[0]);
-  if (path.length === 1 && req.method === 'DELETE') return discard(req, res, db, path[0]);
-  if (path.length === 2 && path[1] === 'approve' && req.method === 'POST') return approve(req, res, db, path[0]);
+  if (path.length !== 1) {
+    res.status(404).json({ error: 'Route inconnue' });
+    return;
+  }
+
+  // 'generate' and 'pending' are reserved keywords; any other single segment
+  // is treated as a cycle id (POST = approve, PATCH = edit, DELETE = discard).
+  // Kept to exactly one path segment - see api/_lib/path.js for why.
+  if (path[0] === 'generate' && req.method === 'POST') return generate(req, res, db);
+  if (path[0] === 'pending' && req.method === 'GET') return pending(req, res, db);
+  if (req.method === 'POST') return approve(req, res, db, path[0]);
+  if (req.method === 'PATCH') return update(req, res, db, path[0]);
+  if (req.method === 'DELETE') return discard(req, res, db, path[0]);
 
   res.status(404).json({ error: 'Route inconnue' });
 };

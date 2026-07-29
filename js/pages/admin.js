@@ -80,7 +80,7 @@ async function loadPending() {
       div.querySelector('.approve').addEventListener('click', async () => {
         const startAtInput = div.querySelector('.start-at').value;
         try {
-          await api.post(`/api/admin/schedule/${c._id}/approve`, {
+          await api.post(`/api/admin/schedule/${c._id}`, {
             startAt: startAtInput ? new Date(startAtInput).toISOString() : undefined,
           });
           await loadPending();

@@ -90,8 +90,11 @@ module.exports = async (req, res) => {
   const path = pathSegments(req, '/api/cycles');
 
   if (path.length === 0 || path[0] === 'current') return current(req, res, db);
-  if (path[0] === 'archive') return archive(req, res, db);
-  if (path.length === 2 && path[1] === 'submissions') return submissionsForCycle(req, res, db, path[0]);
+  if (path.length === 1 && path[0] === 'archive') return archive(req, res, db);
+  // Any other single segment is a cycle id - fetching one always means
+  // "give me its votable submissions" in this app. Kept to one path segment
+  // rather than /:id/submissions - see api/_lib/path.js for why.
+  if (path.length === 1) return submissionsForCycle(req, res, db, path[0]);
 
   res.status(404).json({ error: 'Route inconnue' });
 };

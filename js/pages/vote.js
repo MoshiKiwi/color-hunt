@@ -73,7 +73,7 @@ async function init() {
       renderMessage("<h1>Le vote n'est pas encore ouvert</h1><p class=\"muted\">Revenez une fois la période de soumission terminée.</p>");
       return;
     }
-    const { cycle: cycleDetails, submissions } = await api.get(`/api/cycles/${cycle._id}/submissions`);
+    const { cycle: cycleDetails, submissions } = await api.get(`/api/cycles/${cycle._id}`);
     if (!submissions.length) {
       renderMessage('<h1>Aucune participation à évaluer</h1>');
       return;
