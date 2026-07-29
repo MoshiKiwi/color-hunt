@@ -16,6 +16,34 @@ function cadenceOptions(selected) {
     .join('');
 }
 
+async function loadModeration() {
+  const { items } = await api.get('/api/admin/moderation');
+  const el = document.getElementById('moderation-list');
+  el.innerHTML = items.length ? '' : '<p class="muted">Rien à modérer pour le moment.</p>';
+
+  items.forEach((item) => {
+    const div = document.createElement('div');
+    div.className = 'submission-card';
+    div.innerHTML = `
+      <p><strong>${item.username}</strong> — ${item.cyclePromptText}</p>
+      <img class="moderation-thumb" src="${item.url}" loading="lazy" />
+      <button class="approve-photo">Approuver</button>
+      <button class="ghost reject-photo">Rejeter</button>
+    `;
+
+    div.querySelector('.approve-photo').addEventListener('click', async () => {
+      await api.post('/api/admin/moderation', { submissionId: item.submissionId, url: item.url, decision: 'approve' });
+      await loadModeration();
+    });
+    div.querySelector('.reject-photo').addEventListener('click', async () => {
+      await api.post('/api/admin/moderation', { submissionId: item.submissionId, url: item.url, decision: 'reject' });
+      await loadModeration();
+    });
+
+    el.appendChild(div);
+  });
+}
+
 async function loadPrompts() {
   const { prompts } = await api.get('/api/admin/prompts');
   const el = document.getElementById('prompt-list');
@@ -106,6 +134,11 @@ async function loadPending() {
 function renderLayout() {
   content.innerHTML = `
     <div class="card">
+      <h1>Photos à modérer</h1>
+      <div id="moderation-list">Chargement…</div>
+    </div>
+
+    <div class="card">
       <h1>Ajouter un prompt à la réserve</h1>
       <label for="new-prompt-text">Texte (couleur ou thème)</label>
       <input id="new-prompt-text" placeholder="ex : rouge, des ombres, quelque chose de rond…" />
@@ -173,7 +206,7 @@ async function init() {
     return;
   }
   renderLayout();
-  await Promise.all([loadPrompts(), loadPending()]);
+  await Promise.all([loadModeration(), loadPrompts(), loadPending()]);
 }
 
 init();

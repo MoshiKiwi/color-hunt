@@ -1,4 +1,5 @@
 const { POINTS } = require('./difficulty');
+const { visiblePhotoUrls } = require('./moderation');
 
 async function startDueCycles(db, now) {
   const cycles = db.collection('cycles');
@@ -27,10 +28,8 @@ async function completeFinishedVotes(db, now) {
   const due = await cycles.find({ status: 'voting_open', votingEnd: { $lte: now } }).toArray();
 
   for (const cycle of due) {
-    const submissions = await db
-      .collection('submissions')
-      .find({ cycleId: cycle._id, $expr: { $gte: [{ $size: '$photoUrls' }, cycle.minPhotos] } })
-      .toArray();
+    const allSubmissions = await db.collection('submissions').find({ cycleId: cycle._id }).toArray();
+    const submissions = allSubmissions.filter((s) => visiblePhotoUrls(s.photos).length >= cycle.minPhotos);
 
     const tallies = await db
       .collection('votes')

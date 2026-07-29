@@ -36,17 +36,23 @@ function photoGalleryHtml(photos) {
   `;
 }
 
-function myPhotoGalleryHtml(photoUrls) {
-  if (!photoUrls.length) return '';
+const STATUS_LABELS = {
+  pending_review: 'En cours de vérification',
+  rejected: 'Refusée',
+};
+
+function myPhotoGalleryHtml(myPhotos) {
+  if (!myPhotos.length) return '';
   return `
     <h3>Mes photos</h3>
     <div class="photo-grid">
-      ${photoUrls
+      ${myPhotos
         .map(
-          (u) => `
+          (p) => `
         <figure>
-          <button class="photo-delete" data-url="${encodeURIComponent(u)}" aria-label="Supprimer cette photo">×</button>
-          <img src="${u}" loading="lazy" />
+          <button class="photo-delete" data-url="${encodeURIComponent(p.url)}" aria-label="Supprimer cette photo">×</button>
+          <img src="${p.url}" loading="lazy" />
+          ${STATUS_LABELS[p.status] ? `<figcaption class="photo-status">${STATUS_LABELS[p.status]}</figcaption>` : ''}
         </figure>`
         )
         .join('')}
@@ -80,12 +86,12 @@ function renderVotingOpen(cycle, photos) {
 
 async function renderSubmissionOpen(cycle, photos) {
   const user = getCurrentUser();
-  let myPhotoUrls = [];
+  let myPhotos = [];
   if (user) {
     const { submission } = await api.get('/api/submissions/mine');
-    myPhotoUrls = submission?.photoUrls || [];
+    myPhotos = submission?.photos || [];
   }
-  const myCount = myPhotoUrls.length;
+  const myCount = myPhotos.filter((p) => p.status !== 'rejected').length;
   const complete = myCount >= cycle.minPhotos;
   const pct = Math.min(100, Math.round((myCount / cycle.minPhotos) * 100));
 
@@ -104,7 +110,7 @@ async function renderSubmissionOpen(cycle, photos) {
           <span class="muted" id="upload-status"></span>
         </div>
         <p class="error" id="upload-error"></p>
-        ${myPhotoGalleryHtml(myPhotoUrls)}
+        ${myPhotoGalleryHtml(myPhotos)}
       `
           : `
         <p class="muted">Connectez-vous pour participer à ce défi.</p>

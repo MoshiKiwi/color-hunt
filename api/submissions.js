@@ -1,7 +1,13 @@
 const { ObjectId } = require('mongodb');
 const { getDb } = require('./_lib/db');
 const { requireAuth } = require('./_lib/auth');
+const { checkImage } = require('./_lib/moderation');
 
+// A photo's status: 'clean' (passed automatically), 'pending_review'
+// (flagged, hidden from everyone but the uploader until an admin decides),
+// 'approved' or 'rejected' (admin decision). 'rejected' is the only status
+// excluded from the uploader's own completion count - see api/_lib/cycleEngine.js
+// and api/cycles/[[...path]].js for where visibility/eligibility is filtered.
 async function create(req, res, db, session) {
   const { photoUrls } = req.body || {};
   if (!Array.isArray(photoUrls) || photoUrls.length === 0 || !photoUrls.every((u) => typeof u === 'string' && u)) {
@@ -15,22 +21,30 @@ async function create(req, res, db, session) {
     return;
   }
 
+  const newPhotos = await Promise.all(
+    photoUrls.map(async (url) => {
+      const { flagged } = await checkImage(url);
+      return { url, status: flagged ? 'pending_review' : 'clean' };
+    })
+  );
+
   const now = new Date();
   const userId = new ObjectId(session.userId);
   const result = await db.collection('submissions').findOneAndUpdate(
     { cycleId: cycle._id, userId },
     {
       $setOnInsert: { cycleId: cycle._id, userId, username: session.username, submittedAt: now },
-      $push: { photoUrls: { $each: photoUrls } },
+      $push: { photos: { $each: newPhotos } },
     },
     { upsert: true, returnDocument: 'after' }
   );
 
   const submission = result.value || result;
+  const visibleCount = submission.photos.filter((p) => p.status !== 'rejected').length;
   res.status(200).json({
-    submission: { id: submission._id, photoUrls: submission.photoUrls },
+    submission: { id: submission._id, photos: submission.photos },
     minPhotos: cycle.minPhotos,
-    complete: submission.photoUrls.length >= cycle.minPhotos,
+    complete: visibleCount >= cycle.minPhotos,
   });
 }
 
@@ -57,12 +71,12 @@ async function removePhoto(req, res, db, session) {
     .collection('submissions')
     .findOneAndUpdate(
       { cycleId: cycle._id, userId },
-      { $pull: { photoUrls: photoUrl } },
+      { $pull: { photos: { url: photoUrl } } },
       { returnDocument: 'after' }
     );
 
   const submission = result.value || result;
-  res.status(200).json({ submission: submission ? { id: submission._id, photoUrls: submission.photoUrls } : null });
+  res.status(200).json({ submission: submission ? { id: submission._id, photos: submission.photos } : null });
 }
 
 module.exports = async (req, res) => {

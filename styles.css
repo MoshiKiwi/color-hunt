@@ -203,6 +203,17 @@ main {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.photo-grid figcaption.photo-status {
+  font-family: 'Karla', sans-serif;
+  font-weight: 700;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--purple);
+  white-space: normal;
+}
+
+.moderation-thumb { max-width: 220px; width: 100%; border-radius: 8px; display: block; margin-bottom: 0.6rem; }
 
 /* ---------- lightbox ---------- */
 

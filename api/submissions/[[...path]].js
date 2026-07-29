@@ -16,7 +16,7 @@ async function mine(req, res, db, session) {
 
   res.status(200).json({
     cycle: { id: cycle._id, promptText: cycle.promptText, difficulty: cycle.difficulty, minPhotos: cycle.minPhotos, status: cycle.status, submissionEnd: cycle.submissionEnd },
-    submission: submission ? { id: submission._id, photoUrls: submission.photoUrls } : null,
+    submission: submission ? { id: submission._id, photos: submission.photos } : null,
   });
 }
 

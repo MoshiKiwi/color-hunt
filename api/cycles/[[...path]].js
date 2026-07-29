@@ -3,6 +3,7 @@ const { getDb } = require('../_lib/db');
 const { requireAuth } = require('../_lib/auth');
 const { pathSegments } = require('../_lib/path');
 const { advanceCycles } = require('../_lib/cycleEngine');
+const { visiblePhotoUrls } = require('../_lib/moderation');
 
 function shuffle(array) {
   const copy = [...array];
@@ -22,10 +23,11 @@ async function current(req, res, db) {
     { sort: { submissionStart: -1 } }
   );
   if (active) {
-    // Public collection: everyone (logged in or not) sees every photo
-    // submitted so far for the live cycle, no gating.
+    // Public collection: everyone (logged in or not) sees every cleared
+    // photo submitted so far for the live cycle; flagged/rejected ones stay
+    // hidden until an admin clears them.
     const submissions = await db.collection('submissions').find({ cycleId: active._id }).toArray();
-    const photos = submissions.flatMap((s) => s.photoUrls.map((url) => ({ url, username: s.username })));
+    const photos = submissions.flatMap((s) => visiblePhotoUrls(s.photos).map((url) => ({ url, username: s.username })));
     res.status(200).json({ cycle: active, photos });
     return;
   }
@@ -66,17 +68,16 @@ async function submissionsForCycle(req, res, db, id) {
     return;
   }
 
-  const submissions = await db
-    .collection('submissions')
-    .find({ cycleId: cycle._id, $expr: { $gte: [{ $size: '$photoUrls' }, cycle.minPhotos] } })
-    .toArray();
+  const submissions = await db.collection('submissions').find({ cycleId: cycle._id }).toArray();
 
   const visible = submissions
+    .map((s) => ({ ...s, visibleUrls: visiblePhotoUrls(s.photos) }))
+    .filter((s) => s.visibleUrls.length >= cycle.minPhotos)
     .filter((s) => cycle.status === 'completed' || s.userId.toString() !== session.userId)
     .map((s) => ({
       id: s._id,
       username: s.username,
-      photoUrls: s.photoUrls,
+      photoUrls: s.visibleUrls,
       isOwn: s.userId.toString() === session.userId,
     }));
 
