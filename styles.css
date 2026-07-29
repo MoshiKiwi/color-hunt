@@ -163,6 +163,7 @@ main {
   margin: 1.2rem 0;
 }
 .photo-grid figure {
+  position: relative;
   margin: 0;
   background: #ffffff;
   padding: 0.5rem 0.5rem 1.1rem;
@@ -171,11 +172,27 @@ main {
   transform: rotate(var(--tilt, -1.5deg));
   transition: transform 0.2s;
 }
+.photo-delete {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--purple-deep);
+  color: var(--white);
+  font-size: 1.1rem;
+  line-height: 1;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  z-index: 1;
+}
+.photo-delete:hover { background: var(--purple); }
 .photo-grid figure:nth-child(3n+1) { --tilt: -2deg; }
 .photo-grid figure:nth-child(3n+2) { --tilt: 1.5deg; }
 .photo-grid figure:nth-child(3n) { --tilt: -0.5deg; }
 .photo-grid figure:hover { transform: rotate(0deg) scale(1.03); }
-.photo-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+.photo-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; cursor: zoom-in; }
 .photo-grid figcaption {
   font-family: 'VT323', 'Courier New', monospace;
   font-size: 1rem;
@@ -186,6 +203,44 @@ main {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ---------- lightbox ---------- */
+
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(36, 24, 51, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  z-index: 1000;
+}
+.lightbox-overlay.open { opacity: 1; pointer-events: auto; }
+.lightbox-img {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 4px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  background: #fff;
+}
+.lightbox-close {
+  position: absolute;
+  top: 1rem;
+  right: 1.2rem;
+  background: none;
+  border: none;
+  box-shadow: none;
+  color: var(--white);
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.3rem 0.6rem;
+}
+.lightbox-close:hover { color: var(--yellow); }
 
 /* ---------- intro toast ---------- */
 
@@ -319,7 +374,7 @@ td { text-align: left; padding: 0.5rem 0.4rem; border-bottom: 1px solid var(--bo
 
   /* Buttons inline next to each other (tabs, save/approve/discard) stay
      side by side instead of stretching full-width and stacking awkwardly */
-  .tabs button, .submission-card button { width: auto; }
+  .tabs button, .submission-card button, .lightbox-close, .photo-delete { width: auto; }
 
   .photo-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 0.7rem; }
 

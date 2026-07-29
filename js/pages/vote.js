@@ -1,6 +1,7 @@
 import { api } from '../api.js';
 import { initNav, getCurrentUser } from '../nav.js';
 import { difficultyBadge } from '../labels.js';
+import { initLightbox } from '../lightbox.js';
 
 const content = document.getElementById('content');
 let selected = []; // ordered submission ids, rank = index + 1
@@ -42,7 +43,8 @@ function render(cycle, submissions) {
     .join('');
 
   list.querySelectorAll('.submission-card').forEach((card) => {
-    card.addEventListener('click', () => {
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('img')) return; // let the lightbox handle photo clicks instead of toggling the vote
       toggleSelect(card.dataset.id);
       render(cycle, submissions);
     });
@@ -62,6 +64,7 @@ function render(cycle, submissions) {
 
 async function init() {
   await initNav('vote');
+  initLightbox();
   if (!getCurrentUser()) {
     renderMessage('<h1>Vote</h1><p>Connectez-vous pour voter.</p><a class="btn" href="compte.html">Se connecter</a>');
     return;

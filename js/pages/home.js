@@ -2,6 +2,7 @@ import { api } from '../api.js';
 import { initNav, getCurrentUser } from '../nav.js';
 import { uploadPhoto } from '../photo.js';
 import { difficultyBadge, formatDate } from '../labels.js';
+import { initLightbox } from '../lightbox.js';
 
 const content = document.getElementById('content');
 const TOAST_DISMISSED_KEY = 'supersnap_intro_dismissed';
@@ -35,6 +36,24 @@ function photoGalleryHtml(photos) {
   `;
 }
 
+function myPhotoGalleryHtml(photoUrls) {
+  if (!photoUrls.length) return '';
+  return `
+    <h3>Mes photos</h3>
+    <div class="photo-grid">
+      ${photoUrls
+        .map(
+          (u) => `
+        <figure>
+          <button class="photo-delete" data-url="${encodeURIComponent(u)}" aria-label="Supprimer cette photo">×</button>
+          <img src="${u}" loading="lazy" />
+        </figure>`
+        )
+        .join('')}
+    </div>
+  `;
+}
+
 function renderNoCycle(upcoming) {
   content.innerHTML = `
     <div class="card">
@@ -61,11 +80,12 @@ function renderVotingOpen(cycle, photos) {
 
 async function renderSubmissionOpen(cycle, photos) {
   const user = getCurrentUser();
-  let myCount = 0;
+  let myPhotoUrls = [];
   if (user) {
     const { submission } = await api.get('/api/submissions/mine');
-    myCount = submission?.photoUrls?.length || 0;
+    myPhotoUrls = submission?.photoUrls || [];
   }
+  const myCount = myPhotoUrls.length;
   const complete = myCount >= cycle.minPhotos;
   const pct = Math.min(100, Math.round((myCount / cycle.minPhotos) * 100));
 
@@ -84,6 +104,7 @@ async function renderSubmissionOpen(cycle, photos) {
           <span class="muted" id="upload-status"></span>
         </div>
         <p class="error" id="upload-error"></p>
+        ${myPhotoGalleryHtml(myPhotoUrls)}
       `
           : `
         <p class="muted">Connectez-vous pour participer à ce défi.</p>
@@ -98,6 +119,20 @@ async function renderSubmissionOpen(cycle, photos) {
   `;
 
   if (!user) return;
+
+  document.querySelectorAll('.photo-delete').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const url = decodeURIComponent(btn.dataset.url);
+      if (!window.confirm('Supprimer cette photo ?')) return;
+      try {
+        await api.del('/api/submissions', { photoUrl: url });
+        await checkCycle({ force: true });
+      } catch (err) {
+        document.getElementById('upload-error').textContent = err.message;
+      }
+    });
+  });
 
   document.getElementById('photo-input').addEventListener('change', async (e) => {
     const files = Array.from(e.target.files || []);
@@ -165,6 +200,7 @@ async function checkCycle({ force = false } = {}) {
 
 async function init() {
   await initNav('defi');
+  initLightbox();
   renderIntroToast();
   await checkCycle({ force: true });
   setInterval(checkCycle, POLL_INTERVAL_MS);
