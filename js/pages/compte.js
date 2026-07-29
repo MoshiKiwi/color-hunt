@@ -26,7 +26,7 @@ async function init() {
     errorEl.textContent = '';
     try {
       await api.post('/api/auth/login', {
-        email: document.getElementById('login-email').value,
+        identifier: document.getElementById('login-identifier').value,
         password: document.getElementById('login-password').value,
       });
       window.location.href = 'index.html';

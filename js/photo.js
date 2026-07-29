@@ -2,7 +2,9 @@ import { api } from './api.js';
 
 // Resize/compress a captured photo client-side before upload so free-tier
 // storage and bandwidth (Cloudinary) last across many players and cycles.
-export function compressImage(file, maxDimension = 1280, quality = 0.75) {
+// WebP first (smaller than JPEG at equal quality); browsers that can't
+// encode WebP via canvas return a null blob, so fall back to JPEG.
+export function compressImage(file, maxDimension = 1280, quality = 0.8) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -14,7 +16,17 @@ export function compressImage(file, maxDimension = 1280, quality = 0.75) {
       canvas.height = Math.round(img.height * scale);
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('Compression échouée'))), 'image/jpeg', quality);
+      canvas.toBlob((blob) => {
+        if (blob) {
+          resolve(blob);
+          return;
+        }
+        canvas.toBlob(
+          (jpegBlob) => (jpegBlob ? resolve(jpegBlob) : reject(new Error('Compression échouée'))),
+          'image/jpeg',
+          quality
+        );
+      }, 'image/webp', quality);
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);

@@ -21,11 +21,15 @@ async function signup(req, res, db) {
   }
 
   const normalizedEmail = String(email).trim().toLowerCase();
+  const trimmedUsername = String(username).trim();
+  const usernameLower = trimmedUsername.toLowerCase();
   const users = db.collection('users');
 
-  const existing = await users.findOne({ email: normalizedEmail });
+  const existing = await users.findOne({ $or: [{ email: normalizedEmail }, { usernameLower }] });
   if (existing) {
-    res.status(409).json({ error: 'Un compte existe déjà avec cet email' });
+    res.status(409).json({
+      error: existing.email === normalizedEmail ? 'Un compte existe déjà avec cet email' : 'Ce pseudo est déjà pris',
+    });
     return;
   }
 
@@ -33,7 +37,8 @@ async function signup(req, res, db) {
   const user = {
     email: normalizedEmail,
     passwordHash,
-    username: String(username).trim(),
+    username: trimmedUsername,
+    usernameLower,
     isAdmin: false,
     totalPoints: 0,
     createdAt: new Date(),
@@ -50,17 +55,17 @@ async function signup(req, res, db) {
 }
 
 async function login(req, res, db) {
-  const { email, password } = req.body || {};
-  if (!email || !password) {
-    res.status(400).json({ error: 'Email et mot de passe requis' });
+  const { identifier, password } = req.body || {};
+  if (!identifier || !password) {
+    res.status(400).json({ error: 'Email/pseudo et mot de passe requis' });
     return;
   }
 
-  const normalizedEmail = String(email).trim().toLowerCase();
-  const user = await db.collection('users').findOne({ email: normalizedEmail });
+  const normalized = String(identifier).trim().toLowerCase();
+  const user = await db.collection('users').findOne({ $or: [{ email: normalized }, { usernameLower: normalized }] });
 
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
-    res.status(401).json({ error: 'Email ou mot de passe incorrect' });
+    res.status(401).json({ error: 'Identifiants incorrects' });
     return;
   }
 

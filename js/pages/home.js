@@ -48,8 +48,11 @@ async function renderSubmissionOpen(cycle) {
       <p><span class="counter">${photoUrls.length} / ${cycle.minPhotos}</span> ${complete ? ' — pellicule complète !' : ''}</p>
       <div class="progress-bar"><div style="width:${pct}%"></div></div>
 
-      <label for="photo-input">Ajouter des photos</label>
-      <input id="photo-input" type="file" accept="image/*" capture="environment" multiple />
+      <div class="file-picker">
+        <label for="photo-input" class="btn file-picker-label">Choisir des photos</label>
+        <input id="photo-input" type="file" accept="image/*" multiple class="file-input-hidden" />
+        <span class="muted" id="file-count"></span>
+      </div>
       <p class="error" id="upload-error"></p>
       <button id="upload-btn">Envoyer</button>
 
@@ -61,6 +64,13 @@ async function renderSubmissionOpen(cycle) {
       <p class="muted" id="collage-status"></p>
     </div>
   `;
+
+  document.getElementById('photo-input').addEventListener('change', (e) => {
+    const count = e.target.files?.length || 0;
+    document.getElementById('file-count').textContent = count
+      ? `${count} photo${count > 1 ? 's' : ''} sélectionnée${count > 1 ? 's' : ''}`
+      : '';
+  });
 
   document.getElementById('upload-btn').addEventListener('click', async () => {
     const input = document.getElementById('photo-input');
