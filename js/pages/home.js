@@ -9,7 +9,7 @@ const content = document.getElementById('content');
 function renderLoggedOut() {
   content.innerHTML = `
     <div class="card">
-      <h1>Bienvenue sur Color Hunt</h1>
+      <h1>Bienvenue sur SuperSnap</h1>
       <p>Chaque semaine ou chaque mois, un thème ou une couleur est tiré au sort. Photographiez tout ce qui correspond, montez votre collage, et votez pour vos participations préférées !</p>
       <a class="btn" href="compte.html">Se connecter / Créer un compte</a>
     </div>
@@ -45,7 +45,7 @@ async function renderSubmissionOpen(cycle) {
     <div class="card">
       <h1>${cycle.promptText} ${difficultyBadge(cycle.difficulty)}</h1>
       <p class="muted">Soumissions ouvertes jusqu'au ${formatDate(cycle.submissionEnd)}</p>
-      <p><strong>${photoUrls.length} / ${cycle.minPhotos}</strong> photos ${complete ? '— objectif atteint 🎉' : ''}</p>
+      <p><span class="counter">${photoUrls.length} / ${cycle.minPhotos}</span> ${complete ? ' — pellicule complète !' : ''}</p>
       <div class="progress-bar"><div style="width:${pct}%"></div></div>
 
       <label for="photo-input">Ajouter des photos</label>
@@ -54,7 +54,7 @@ async function renderSubmissionOpen(cycle) {
       <button id="upload-btn">Envoyer</button>
 
       <div class="photo-grid" id="photo-grid">
-        ${photoUrls.map((u) => `<img src="${u}" loading="lazy" />`).join('')}
+        ${photoUrls.map((u) => `<figure><img src="${u}" loading="lazy" /></figure>`).join('')}
       </div>
 
       <button id="collage-btn" class="secondary" ${photoUrls.length ? '' : 'disabled'}>Générer mon montage</button>
@@ -93,7 +93,7 @@ async function renderSubmissionOpen(cycle) {
     status.textContent = 'Génération du montage…';
     try {
       const canvas = await buildCollage(photoUrls);
-      downloadCanvas(canvas, `color-hunt-${cycle.promptText}.png`);
+      downloadCanvas(canvas, `supersnap-${cycle.promptText}.png`);
       status.textContent = 'Montage téléchargé !';
     } catch (err) {
       status.textContent = err.message;

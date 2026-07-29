@@ -36,7 +36,7 @@ function render(cycle, submissions) {
       return `
       <div class="submission-card ${rank > 0 ? 'selected' : ''}" data-id="${s.id}">
         <p><strong>${s.username}</strong> ${rank > 0 ? `— #${rank} favori` : ''}</p>
-        <div class="photo-grid">${s.photoUrls.map((u) => `<img src="${u}" loading="lazy" />`).join('')}</div>
+        <div class="photo-grid">${s.photoUrls.map((u) => `<figure><img src="${u}" loading="lazy" /></figure>`).join('')}</div>
       </div>`;
     })
     .join('');

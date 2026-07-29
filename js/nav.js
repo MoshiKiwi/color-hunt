@@ -31,7 +31,7 @@ export async function initNav(activePage) {
 
   mount.innerHTML = `
     <nav class="topnav">
-      <span class="brand">📸 Color Hunt</span>
+      <span class="brand">SuperSnap</span>
       <div class="nav-links">${linksHtml}</div>
       <div class="nav-auth">${authHtml}</div>
     </nav>
