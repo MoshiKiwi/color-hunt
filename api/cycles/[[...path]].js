@@ -2,6 +2,7 @@ const { ObjectId } = require('mongodb');
 const { getDb } = require('../_lib/db');
 const { requireAuth } = require('../_lib/auth');
 const { pathSegments } = require('../_lib/path');
+const { advanceCycles } = require('../_lib/cycleEngine');
 
 function shuffle(array) {
   const copy = [...array];
@@ -13,6 +14,7 @@ function shuffle(array) {
 }
 
 async function current(req, res, db) {
+  await advanceCycles(db);
   const cycles = db.collection('cycles');
 
   const active = await cycles.findOne(

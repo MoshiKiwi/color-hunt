@@ -74,6 +74,7 @@ async function renderSubmissionOpen(cycle) {
     const btn = document.getElementById('upload-btn');
     btn.disabled = true;
     btn.textContent = 'Envoi en cours…';
+    uploading = true;
     try {
       const urls = [];
       for (const file of files) {
@@ -85,6 +86,8 @@ async function renderSubmissionOpen(cycle) {
       errorEl.textContent = err.message;
       btn.disabled = false;
       btn.textContent = 'Envoyer';
+    } finally {
+      uploading = false;
     }
   });
 
@@ -101,15 +104,24 @@ async function renderSubmissionOpen(cycle) {
   });
 }
 
-async function init() {
-  await initNav('defi');
-  if (!getCurrentUser()) {
-    renderLoggedOut();
-    return;
-  }
+const POLL_INTERVAL_MS = 5000;
+let lastSignature = null;
+let uploading = false;
+
+function signatureFor(cycle, upcoming) {
+  if (cycle) return `${cycle._id}:${cycle.status}`;
+  return upcoming ? `upcoming:${upcoming._id}` : 'none';
+}
+
+async function checkCycle({ force = false } = {}) {
+  if (uploading) return; // don't yank the form out from under an in-flight upload
 
   try {
     const { cycle, upcoming } = await api.get('/api/cycles/current');
+    const signature = signatureFor(cycle, upcoming);
+    if (!force && signature === lastSignature) return; // nothing changed, leave the view alone
+    lastSignature = signature;
+
     if (!cycle) {
       renderNoCycle(upcoming);
     } else if (cycle.status === 'voting_open') {
@@ -120,6 +132,17 @@ async function init() {
   } catch (err) {
     content.innerHTML = `<p class="error">${err.message}</p>`;
   }
+}
+
+async function init() {
+  await initNav('defi');
+  if (!getCurrentUser()) {
+    renderLoggedOut();
+    return;
+  }
+
+  await checkCycle({ force: true });
+  setInterval(checkCycle, POLL_INTERVAL_MS);
 }
 
 init();
