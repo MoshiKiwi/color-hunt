@@ -1,6 +1,6 @@
 const { ObjectId } = require('mongodb');
-const { getDb } = require('../../_lib/db');
-const { requireAuth } = require('../../_lib/auth');
+const { getDb } = require('../_lib/db');
+const { requireAuth } = require('../_lib/auth');
 
 function shuffle(array) {
   const copy = [...array];
@@ -11,28 +11,49 @@ function shuffle(array) {
   return copy;
 }
 
-module.exports = async (req, res) => {
-  if (req.method !== 'GET') {
-    res.status(405).json({ error: 'Méthode non autorisée' });
+async function current(req, res, db) {
+  const cycles = db.collection('cycles');
+
+  const active = await cycles.findOne(
+    { status: { $in: ['submission_open', 'voting_open'] } },
+    { sort: { submissionStart: -1 } }
+  );
+  if (active) {
+    res.status(200).json({ cycle: active });
     return;
   }
 
+  const upcoming = await cycles.findOne(
+    { status: 'scheduled' },
+    { sort: { submissionStart: 1 }, projection: { promptText: 0, difficulty: 0 } }
+  );
+  res.status(200).json({ cycle: null, upcoming: upcoming || null });
+}
+
+async function archive(req, res, db) {
+  const cycles = await db
+    .collection('cycles')
+    .find({ status: 'completed' })
+    .sort({ submissionStart: -1 })
+    .limit(50)
+    .toArray();
+  res.status(200).json({ cycles });
+}
+
+async function submissionsForCycle(req, res, db, id) {
   const session = requireAuth(req, res);
   if (!session) return;
 
-  const { id } = req.query;
   if (!ObjectId.isValid(id)) {
     res.status(400).json({ error: 'Identifiant de cycle invalide' });
     return;
   }
 
-  const db = await getDb();
   const cycle = await db.collection('cycles').findOne({ _id: new ObjectId(id) });
   if (!cycle) {
     res.status(404).json({ error: 'Cycle introuvable' });
     return;
   }
-
   if (!['voting_open', 'completed'].includes(cycle.status)) {
     res.status(403).json({ error: "Les participations ne sont pas encore visibles" });
     return;
@@ -56,4 +77,20 @@ module.exports = async (req, res) => {
     cycle: { id: cycle._id, promptText: cycle.promptText, difficulty: cycle.difficulty, minPhotos: cycle.minPhotos, status: cycle.status },
     submissions: cycle.status === 'voting_open' ? shuffle(visible) : visible,
   });
+}
+
+module.exports = async (req, res) => {
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'Méthode non autorisée' });
+    return;
+  }
+
+  const db = await getDb();
+  const path = req.query.path || [];
+
+  if (path.length === 0 || path[0] === 'current') return current(req, res, db);
+  if (path[0] === 'archive') return archive(req, res, db);
+  if (path.length === 2 && path[1] === 'submissions') return submissionsForCycle(req, res, db, path[0]);
+
+  res.status(404).json({ error: 'Route inconnue' });
 };
